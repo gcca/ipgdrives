@@ -1,0 +1,35 @@
+add_library(conn OBJECT conn.cpp common.cpp)
+add_library(acc_conn OBJECT acc_conn.cpp)
+add_library(file_conn OBJECT file_conn.cpp)
+add_library(ip_conn OBJECT ip_conn.cpp)
+add_library(conns)
+target_include_directories(conn PUBLIC ${Boost_INCLUDE_DIRS})
+target_link_libraries(conn PRIVATE Boost::context Boost::filesystem Boost::system Boost::thread OpenSSL::SSL nlohmann_json::nlohmann_json)
+target_link_libraries(acc_conn PRIVATE conn nlohmann_json::nlohmann_json)
+target_link_libraries(file_conn PRIVATE conn nlohmann_json::nlohmann_json)
+target_link_libraries(ip_conn PRIVATE conn)
+target_link_libraries(conns PRIVATE acc_conn file_conn ip_conn conn)
+
+find_package(GTest)
+
+if (GTest_FOUND)
+  enable_testing()
+  include(GoogleTest)
+
+  macro(add_test_s testpre)
+    add_executable(${testpre}-test ${testpre}-test.cc)
+    target_link_libraries(${testpre}-test GTest::gmock_main ${testpre} common-test)
+    gtest_discover_tests(${testpre}-test)
+  endmacro()
+
+  add_library(common-test OBJECT common-test.cpp)
+  target_link_libraries(common-test GTest::gmock)
+
+  add_executable(conn-test conn-test.cc)
+  target_link_libraries(conn-test GTest::gmock_main conn)
+  gtest_discover_tests(conn-test)
+
+  add_test_s(ip_conn)
+  add_test_s(acc_conn)
+  add_test_s(file_conn)
+endif()
